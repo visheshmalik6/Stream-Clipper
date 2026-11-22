@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream Clips - Local Uploader & Dashboard</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z" class="fill-path"/></svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Stream Clips Uploader</h1>
+          <p class="brand-subtitle">Local Clip Discovery & Publishing Hub</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- YouTube OAuth Connection Indicator / Button -->
+        <div class="youtube-auth-section">
+          <button id="yt-connect-btn" class="btn btn-secondary btn-yt-connect">
+            <span class="yt-icon"><svg class="ico fill" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span> <span id="yt-connect-btn-text">Connect YouTube</span>
+          </button>
+          <button id="yt-settings-btn" class="btn btn-secondary btn-yt-settings" title="Configure Google OAuth Credentials" aria-label="YouTube settings">
+            <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            YouTube
+          </button>
+          <div id="yt-connected-info" class="yt-connected-info hidden">
+            <span class="yt-dot"></span>
+            <span id="yt-channel-name">Channel Name</span>
+            <button id="yt-disconnect-btn" class="btn-disconnect" title="Disconnect YouTube">&times;</button>
+          </div>
+        </div>
+
+        <span class="header-divider"></span>
+
+        <!-- Instagram Connection Indicator / Button -->
+        <div class="instagram-auth-section">
+          <button id="ig-connect-btn" class="btn btn-secondary btn-ig-connect">
+            <span class="ig-icon"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" class="dot"/></svg></span> <span id="ig-connect-btn-text">Connect Instagram</span>
+          </button>
+          <button id="ig-settings-btn" class="btn btn-secondary btn-ig-settings" title="Configure Instagram System-User Access Token" aria-label="Instagram settings">
+            <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            Instagram
+          </button>
+          <div id="ig-connected-info" class="ig-connected-info hidden">
+            <span class="ig-dot"></span>
+            <span id="ig-account-name">@creator_account</span>
+            <button id="ig-disconnect-btn" class="btn-disconnect" title="Disconnect Instagram">&times;</button>
+          </div>
+        </div>
+
+        <span class="header-divider"></span>
+
+        <button id="refresh-btn" class="btn btn-secondary">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg> Refresh Clips
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-body">
+      <!-- Sidebar / Clip List -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Discovered Streams</h2>
+          <span id="clip-count-badge" class="count-badge">0 clips</span>
+        </div>
+        <div id="streams-container" class="streams-container">
+          <div class="loading-state">Scanning configured data directory...</div>
+        </div>
+      </aside>
+
+      <!-- Main Editor / Preview Area -->
+      <section class="content-area">
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">
+            <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+          </div>
+          <h2>Select a clip to preview and edit</h2>
+          <p>Choose any clip from the sidebar to inspect its vertical 9:16 video, review viral score, and edit publishing metadata.</p>
+        </div>
+
+        <div id="editor-container" class="editor-container hidden">
+          <!-- Video Preview Panel -->
+          <div class="preview-panel">
+            <div class="video-wrapper">
+              <video id="video-player" controls preload="metadata" playsinline>
+                Your browser does not support vertical video playback.
+              </video>
+            </div>
+            <div class="clip-quick-stats">
+              <span id="stat-score" class="badge badge-score">Score: 89</span>
+              <span id="stat-duration" class="badge badge-neutral">49s</span>
+              <span id="stat-type" class="badge badge-neutral">skill</span>
+              <span id="stat-look" class="badge badge-neutral">stack</span>
+            </div>
+
+            <!-- YouTube Published Banner -->
+            <div id="yt-published-banner" class="published-banner hidden">
+              <div class="banner-top">
+                <span class="banner-icon">✓</span>
+                <strong>Published to YouTube Shorts</strong>
+              </div>
+              <p class="banner-sub" id="yt-published-time"></p>
+              <a id="yt-watch-link" class="banner-link" href="#" target="_blank" rel="noopener">Open in YouTube Shorts ↗</a>
+            </div>
+
+            <!-- Instagram Published Banner -->
+            <div id="ig-published-banner" class="published-banner ig-banner hidden">
+              <div class="banner-top">
+                <span class="banner-icon">✓</span>
+                <strong>Published to Instagram Reels</strong>
+              </div>
+              <p class="banner-sub" id="ig-published-time"></p>
+              <a id="ig-watch-link" class="banner-link" href="#" target="_blank" rel="noopener">Open in Instagram Reels ↗</a>
+            </div>
+          </div>
+
+          <!-- Metadata & Publishing Panel -->
+          <div class="details-panel">
+            <div class="panel-header">
+              <div>
+                <span id="stream-name-display" class="stream-source-name">MrBeast Gaming</span>
+                <h2 id="clip-filename-display" class="clip-file-heading">01_clip.mp4</h2>
+              </div>
+              <div class="status-indicators">
+                <span id="yt-status-badge" class="badge badge-status">YouTube: Ready</span>
+                <span id="ig-status-badge" class="badge badge-status">Instagram: Ready</span>
+              </div>
+            </div>
+
+            <div id="why-box" class="why-box">
+              <span class="why-label">Viral Rationale:</span>
+              <span id="why-text"></span>
+            </div>
+
+            <!-- Metadata Form -->
+            <form id="metadata-form" class="metadata-form" onsubmit="return false;">
+              <!-- Title Field -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="edit-title">Title / Headline</label>
+                  <span id="title-counter" class="char-counter">0 / 100</span>
+                </div>
+                <input type="text" id="edit-title" class="input-text" maxlength="100" placeholder="Enter clip title...">
+                <small class="helper-text">Recommended: Under 70 characters for YouTube Shorts display.</small>
+              </div>
+
+              <!-- Caption / Description Field -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="edit-caption">Caption / Description</label>
+                  <span id="caption-counter" class="char-counter">0 / 2200</span>
+                </div>
+                <textarea id="edit-caption" class="input-textarea" rows="4" maxlength="2200" placeholder="Write caption to engage viewers..."></textarea>
+                <small class="helper-text">Used as YouTube Shorts description and Instagram Reels caption.</small>
+              </div>
+
+              <!-- Hashtags Field -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="edit-hashtags">Hashtags</label>
+                  <span id="tag-counter" class="char-counter">0 tags</span>
+                </div>
+                <div class="tag-input-container">
+                  <div id="tag-pills" class="tag-pills"></div>
+                  <input type="text" id="new-tag-input" class="tag-inline-input" placeholder="Type hashtag and press Enter...">
+                </div>
+                <small class="helper-text">Include relevant tags like #Shorts, #Gaming, #GTA6 to boost discovery.</small>
+              </div>
+
+              <!-- YouTube Visibility / Privacy Dropdown -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="edit-privacy">YouTube Visibility</label>
+                  <span class="badge badge-neutral">YouTube Shorts</span>
+                </div>
+                <select id="edit-privacy" class="input-select">
+                  <option value="private" selected>Private (Default - Recommended for review)</option>
+                  <option value="unlisted">Unlisted (Accessible only to anyone with the link)</option>
+                  <option value="public">Public (Published directly to subscribers and Shorts feed)</option>
+                </select>
+                <small class="helper-text">Defaults to Private so you can review in YouTube Studio before going public.</small>
+              </div>
+
+              <!-- Form Actions -->
+              <div class="form-actions">
+                <button type="button" id="save-metadata-btn" class="btn btn-primary">
+                  <svg class="ico" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="8"/></svg> Save Metadata
+                </button>
+                <span id="save-status-indicator" class="save-indicator"></span>
+              </div>
+            </form>
+
+            <hr class="divider">
+
+            <!-- Publishing Actions Section -->
+            <div class="publishing-section">
+              <h3 class="section-title">Publish Clip</h3>
+              <p class="section-desc">Upload this vertical clip to YouTube Shorts and Instagram Reels using official APIs.</p>
+
+              <!-- Real-time Upload Progress Bar -->
+              <div id="upload-progress-container" class="upload-progress-container hidden">
+                <div class="progress-label">
+                  <span id="progress-status-text">Uploading to YouTube Shorts...</span>
+                  <span id="progress-percent-text">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                </div>
+              </div>
+
+              <div class="publish-buttons-grid">
+                <button type="button" id="publish-yt-btn" class="btn btn-platform btn-youtube">
+                  <span class="platform-icon"><svg class="ico fill" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                  <div class="btn-text">
+                    <span id="publish-yt-title" class="primary">Publish to YouTube</span>
+                    <span id="publish-yt-sub" class="secondary">Shorts (Resumable Upload)</span>
+                  </div>
+                </button>
+
+                <button type="button" id="publish-ig-btn" class="btn btn-platform btn-instagram">
+                  <span class="platform-icon"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8"/></svg></span>
+                  <div class="btn-text">
+                    <span id="publish-ig-title" class="primary">Publish to Instagram</span>
+                    <span id="publish-ig-sub" class="secondary">Reels (Meta Graph API)</span>
+                  </div>
+                </button>
+
+                <button type="button" id="publish-both-btn" class="btn btn-platform btn-both">
+                  <span class="platform-icon"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
+                  <div class="btn-text">
+                    <span class="primary">Publish to Both</span>
+                    <span class="secondary">YouTube & Instagram (Phase 4)</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Dialog: Connect YouTube OAuth Config -->
+  <div id="yt-config-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Google OAuth 2.0 Credentials Setup</h3>
+        <button id="yt-config-close" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="cfg-status-banner" class="cfg-status-banner">
+          <span id="cfg-status-text">Loading OAuth status...</span>
+          <button type="button" id="cfg-clear-btn" class="btn-text-danger hidden">Clear Stored Credentials</button>
+        </div>
+
+        <p class="modal-intro">Enter the OAuth Client credentials from your Google Cloud Console project.</p>
+
+        <div class="config-tabs">
+          <button type="button" id="tab-paste-btn" class="tab-btn active">Enter Client ID & Secret</button>
+          <button type="button" id="tab-file-btn" class="tab-btn">Upload client_secrets.json</button>
+        </div>
+
+        <div id="config-paste-view" class="config-tab-view">
+          <div class="form-group modal-field">
+            <label>Client ID</label>
+            <input type="text" id="cfg-client-id" class="input-text" placeholder="e.g. 123456789-xxxx.apps.googleusercontent.com">
+          </div>
+          <div class="form-group">
+            <label>Client Secret</label>
+            <input type="password" id="cfg-client-secret" class="input-text" placeholder="e.g. YourClientSecret">
+          </div>
+        </div>
+
+        <div id="config-file-view" class="config-tab-view hidden">
+          <div class="form-group">
+            <label>client_secrets.json Content</label>
+            <textarea id="cfg-secrets-json" class="input-textarea" rows="4" placeholder="Paste full contents of downloaded client_secrets.json here..."></textarea>
+          </div>
+        </div>
+
+        <div class="oauth-help-box">
+          <strong>Setup tip:</strong> In Google Cloud Console, enable <em>YouTube Data API v3</em>, create an OAuth 2.0 Client ID (Web Application), and set Authorized redirect URI to:<br>
+          <code class="code-pill">http://127.0.0.1:5050/oauth/youtube/callback</code>
+        </div>
+      </div>
+      <div class="modal-footer split">
+        <button type="button" id="save-cfg-only-btn" class="btn btn-secondary">Save Credentials Only</button>
+        <button type="button" id="save-cfg-btn" class="btn btn-primary">Save & Connect with Google</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Connection Modal -->
+  <div id="yt-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Connect YouTube</h3>
+        <button id="yt-confirm-close" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>You are ready to authenticate with Google using your configured OAuth Client:</p>
+        <div class="client-box">
+          <div class="client-box-label">CONFIGURED CLIENT ID</div>
+          <code id="confirm-client-id" class="code-pill">...</code>
+        </div>
+        <p class="modal-note">Clicking <strong>Authorize with Google</strong> will open Google's OAuth consent screen where you grant permission to upload Shorts to your YouTube channel.</p>
+      </div>
+      <div class="modal-footer split">
+        <button type="button" id="confirm-change-cfg-btn" class="btn btn-secondary">Change Credentials</button>
+        <button type="button" id="confirm-proceed-btn" class="btn btn-primary">Authorize with Google</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: Connect Instagram SUAT Config -->
+  <div id="ig-config-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Instagram Meta API Credentials Setup</h3>
+        <button id="ig-config-close" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="ig-cfg-status-banner" class="cfg-status-banner">
+          <span id="ig-cfg-status-text">Loading Instagram status...</span>
+          <button type="button" id="ig-cfg-clear-btn" class="btn-text-danger hidden">Clear Stored Token</button>
+        </div>
+
+        <p class="modal-intro">Enter the System-User Access Token (SUAT) configured in your Meta Developer App.</p>
+
+        <div class="form-group modal-field">
+          <label>System-User Access Token (SUAT)</label>
+          <input type="password" id="cfg-ig-token" class="input-text" placeholder="Paste your Meta SUAT token (e.g. EAAG...)">
+          <small class="helper-text">Configured with instagram_basic and instagram_content_publish permissions.</small>
+        </div>
+
+        <div class="form-group modal-field">
+          <label>Public Media URL / Tunnel (Optional Override)</label>
+          <input type="text" id="cfg-ig-public-url" class="input-text" placeholder="Auto-starts Cloudflare Tunnel if empty">
+          <small class="helper-text">Leave blank to use automatic Cloudflare Quick Tunnel, or enter an existing ngrok / Cloudflare tunnel URL.</small>
+        </div>
+
+        <div class="oauth-help-box">
+          <strong>Meta Setup:</strong> Connect an Instagram Creator or Business account. Tokens are saved securely outside the repo in <code class="code-pill">~/.streamclips/auth/</code> and masked in dashboard API responses.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="save-ig-cfg-btn" class="btn btn-primary">Save & Validate Instagram Token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate Upload Warning Modal -->
+  <div id="duplicate-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Duplicate Upload Warning</h3>
+        <button id="duplicate-close" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>This clip was already published to <span id="dup-platform-name">YouTube Shorts</span> on <strong id="dup-uploaded-time"></strong>.</p>
+        <p class="modal-link-row">Existing video: <a id="dup-video-link" href="#" target="_blank" rel="noopener">Open published video ↗</a></p>
+        <p class="modal-warning">Publishing again will create a new duplicate post.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="dup-cancel-btn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="dup-force-btn" class="btn btn-danger">Re-upload Anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Notice Modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Notice</h3>
+        <button id="modal-close-btn" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        Modal content goes here.
+      </div>
+      <div class="modal-footer">
+        <button id="modal-ok-btn" class="btn btn-primary">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

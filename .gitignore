@@ -1,0 +1,95 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments & local streamclips environment
+.streamclips/
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Downloaded ML Models (Whisper, OpenCV YuNet ONNX)
+models/
+*.onnx
+*.bin
+
+# Runtime media, downloaded streams, generated clips, and caches
+data/
+StreamClips/
+.cache/
+*.mp4
+*.wav
+*.ass
+*.title.png
+checks/
+
+# Backups and temporary files
+*.bak
+*.tmp
+*.temp
+clips.json.bak
+
+# Authentication, credentials, secrets, and private configuration
+.streamclips/auth/
+auth/
+*client_secrets*.json
+*client_config*.json
+*tokens*.json
+*token*.json
+instagram_config.json
+youtube_client_config.json
+youtube_tokens.json
+*.pem
+*.key
+*.cert
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs and runtime databases
+*.log
+*.sqlite
+*.db
+
+# Operating System and IDE clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# Archives
+*.zip
+*.tar.gz
+*.7z
