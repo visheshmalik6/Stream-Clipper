@@ -146,6 +146,16 @@ YouTube video publishing uses the official Google Resumable Upload protocol:
 4. **Completion**: Upon uploading the final chunk, YouTube returns HTTP `200 OK` or `201 Created` with video details (`video_id`).
 5. **Persistence**: `clips.json` is updated with status `published`, the canonical URL (`https://youtube.com/shorts/<video_id>`), and timestamp.
 
+#### 4.1.1 Native YouTube Video Scheduling
+Native YouTube video scheduling enables creators to schedule vertical clips for future release using YouTube Data API v3's built-in scheduling capabilities:
+- **Protocol & Metadata**: When scheduling, the client supplies a UTC ISO-8601 timestamp in `publish_at`. In accordance with Google's API specification, `status.privacyStatus` is strictly set to `"private"` and `status.publishAt` is set to the target UTC timestamp.
+- **Immediate vs Scheduled**:
+  - When `publish_at` is `None` (immediate upload via "Upload Now"): `status.privacyStatus` is `"public"` (or the user-selected privacy level), and no `publishAt` field is sent.
+  - When `publish_at` is provided (via "Schedule YouTube"): `status.privacyStatus` is automatically `"private"`, and `status.publishAt` is populated.
+- **Upload Completion Requirement**: The local computer must remain powered on and connected to the internet while the video bytes are streamed to YouTube's resumable upload endpoint.
+- **Independent Server-Side Publishing**: Once YouTube responds with `HTTP 200/201` confirming the upload session is complete, the video is fully stored on YouTube's infrastructure. YouTube's servers will independently transition the video from Private to Public at the exact scheduled UTC timestamp. The creator's local PC does **not** need to remain running or connected after the upload confirms.
+- **Metadata Persistence**: Upon confirmation from YouTube, `clips.json` is atomically updated (with `.json.bak` preserved) to record `"status": "scheduled"`, `"scheduled_at": publish_at`, `"video_id"`, and `"uploaded_at"`. If upload fails, the clip is marked `"failed"` and never recorded as `"scheduled"`.
+
 ### 4.2 Instagram Reels Publishing Lifecycle & Ephemeral Gateway
 Instagram Reels publishing requires Meta's crawlers to fetch the video file over public HTTPS. Stream Clips solves this locally without cloud hosting costs:
 

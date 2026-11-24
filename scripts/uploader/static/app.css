@@ -370,6 +370,17 @@ svg.ico.fill { fill: currentColor; stroke: none; }
   flex-direction: column;
   gap: 2px;
 }
+.yt-scheduled-banner {
+  background-color: rgba(79, 140, 255, 0.12);
+  border: 1px solid rgba(79, 140, 255, 0.35);
+}
+.yt-scheduled-banner .banner-top {
+  color: #4f8cff;
+}
+.yt-scheduled-banner .banner-icon {
+  background-color: #4f8cff;
+  color: #0d1117;
+}
 .ig-banner { border-left: 1px solid rgba(63, 178, 127, 0.35); }
 
 .banner-top { display: flex; align-items: center; gap: 8px; color: var(--success); font-size: 13px; }
@@ -562,6 +573,7 @@ svg.ico.fill { fill: currentColor; stroke: none; }
 .btn-platform .btn-text .secondary { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
 
 .btn-youtube .platform-icon { color: var(--yt); }
+.btn-youtube-schedule .platform-icon { color: #4f8cff; }
 .btn-instagram .platform-icon { color: var(--ig); }
 .btn-both .platform-icon { color: var(--accent); }
 
@@ -569,8 +581,13 @@ svg.ico.fill { fill: currentColor; stroke: none; }
   border-color: rgba(63, 178, 127, 0.45);
   background-color: var(--success-soft);
 }
+.btn-youtube-schedule.scheduled-state {
+  border-color: rgba(79, 140, 255, 0.45);
+  background-color: rgba(79, 140, 255, 0.12);
+}
 .btn-youtube.published-state .platform-icon,
 .btn-instagram.published-state .platform-icon { color: var(--success); }
+.btn-youtube-schedule.scheduled-state .platform-icon { color: #4f8cff; }
 
 /* ---------- Badges ---------- */
 .badge {
@@ -587,6 +604,7 @@ svg.ico.fill { fill: currentColor; stroke: none; }
 .badge-neutral { background-color: var(--bg-raised); color: var(--text-secondary); border: 1px solid var(--border); }
 .badge-status { background-color: var(--bg-raised); color: var(--text-secondary); border: 1px solid var(--border); }
 .badge-status.published { background-color: var(--success-soft); color: var(--success); border-color: rgba(63, 178, 127, 0.4); }
+.badge-status.scheduled { background-color: rgba(79, 140, 255, 0.15); color: #4f8cff; border-color: rgba(79, 140, 255, 0.4); }
 .badge-status.in_progress { background-color: var(--warning-soft); color: var(--warning); border-color: rgba(217, 164, 65, 0.4); }
 .badge-status.failed { background-color: var(--danger-soft); color: var(--danger); border-color: rgba(229, 83, 75, 0.4); }
 

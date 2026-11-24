@@ -4,6 +4,7 @@ Follows the official Google resumable upload protocol:
 https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol
 """
 
+import datetime
 import json
 import os
 import time
@@ -15,6 +16,29 @@ from typing import Any, Callable, Dict, List, Optional
 
 UPLOAD_ENDPOINT = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status"
 CHUNK_SIZE = 1024 * 1024  # 1 MB chunks (must be multiple of 256 KB)
+
+
+def validate_publish_at(publish_at: str) -> datetime.datetime:
+    """Validate that publish_at is a valid, future UTC ISO-8601 timestamp string.
+
+    Requires an explicit UTC indicator ('Z' or '+00:00' / '-00:00').
+    Raises ValueError if invalid, non-UTC, or in the past.
+    """
+    if not isinstance(publish_at, str) or not publish_at.strip():
+        raise ValueError("publish_at must be a non-empty UTC ISO-8601 string.")
+    s = publish_at.strip()
+    if not (s.endswith("Z") or s.endswith("+00:00") or s.endswith("-00:00")):
+        raise ValueError(f"publish_at must be an explicit UTC timestamp (ending in 'Z' or '+00:00'): {publish_at}")
+    try:
+        dt = datetime.datetime.fromisoformat(s)
+    except Exception as exc:
+        raise ValueError(f"Invalid ISO-8601 timestamp '{publish_at}': {exc}") from exc
+    if dt.tzinfo is None or dt.utcoffset() != datetime.timedelta(0):
+        raise ValueError(f"publish_at must be in UTC timezone (+00:00 or Z): {publish_at}")
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    if dt <= now_utc:
+        raise ValueError(f"publish_at must be in the future (current UTC: {now_utc.isoformat()}, got: {dt.isoformat()})")
+    return dt
 
 
 class YouTubeUploadError(Exception):
@@ -33,10 +57,22 @@ class YouTubeUploader:
         title: str,
         description: str,
         tags: Optional[List[str]] = None,
-        privacy_status: str = "private",
+        privacy_status: str = "public",
         category_id: str = "20",  # 20 = Gaming
+        publish_at: Optional[str] = None,
     ) -> str:
-        """Step 1: Initiate resumable upload session with metadata."""
+        """Step 1: Initiate resumable upload session with metadata.
+
+        When publish_at is provided:
+        - Validates UTC ISO-8601 future timestamp.
+        - Sets privacyStatus to 'private'.
+        - Sets publishAt to the supplied timestamp.
+
+        When publish_at is None:
+        - Preserves immediate upload behavior.
+        - Sets privacyStatus to privacy_status (defaults to 'public').
+        - Does not include publishAt.
+        """
         if not video_path.exists():
             raise FileNotFoundError(f"Video file not found: {video_path}")
 
@@ -51,6 +87,19 @@ class YouTubeUploader:
         if "#Shorts" not in full_description and "#shorts" not in full_description:
             full_description = f"{full_description}\n\n#Shorts"
 
+        status_dict: Dict[str, Any] = {
+            "selfDeclaredMadeForKids": False,
+        }
+
+        if publish_at is not None:
+            # Validate UTC ISO-8601 and future requirement
+            validate_publish_at(publish_at)
+            status_dict["privacyStatus"] = "private"
+            status_dict["publishAt"] = publish_at.strip()
+        else:
+            effective_privacy = privacy_status.lower() if privacy_status in ("private", "unlisted", "public") else "public"
+            status_dict["privacyStatus"] = effective_privacy
+
         metadata = {
             "snippet": {
                 "title": title[:100].strip(),
@@ -58,10 +107,7 @@ class YouTubeUploader:
                 "tags": clean_tags,
                 "categoryId": category_id,
             },
-            "status": {
-                "privacyStatus": privacy_status.lower() if privacy_status in ("private", "unlisted", "public") else "private",
-                "selfDeclaredMadeForKids": False,
-            },
+            "status": status_dict,
         }
 
         body_bytes = json.dumps(metadata, ensure_ascii=False).encode("utf-8")
@@ -191,8 +237,9 @@ class YouTubeUploader:
         title: str,
         description: str,
         tags: Optional[List[str]] = None,
-        privacy_status: str = "private",
+        privacy_status: str = "public",
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        publish_at: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Perform full resumable upload: initiate session and stream video chunks."""
         upload_url = self.initiate_resumable_upload(
@@ -201,5 +248,6 @@ class YouTubeUploader:
             description=description,
             tags=tags,
             privacy_status=privacy_status,
+            publish_at=publish_at,
         )
         return self.upload_chunks(upload_url, video_path, progress_callback=progress_callback)

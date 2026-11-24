@@ -378,7 +378,7 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
             ig_manager.disconnect()
             return self.send_cors_and_json({"success": True, "message": "Instagram disconnected."})
 
-        # 5. API: Publish to YouTube Shorts (Official Resumable Upload)
+        # 5. API: Publish or Schedule to YouTube Shorts (Official Resumable Upload)
         if path == "/api/publish/youtube":
             clip_id = body.get("clip_id")
             if not clip_id:
@@ -388,16 +388,39 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
             if not clip:
                 return self.send_cors_and_json({"error": "Clip not found"}, status=404)
 
-            # Check duplicate upload prevention
+            # Extract and validate optional publish_at timestamp
+            raw_publish_at = body.get("publish_at")
+            publish_at = raw_publish_at.strip() if isinstance(raw_publish_at, str) and raw_publish_at.strip() else None
+
+            if raw_publish_at is not None and not publish_at:
+                return self.send_cors_and_json({
+                    "error": "invalid_timestamp",
+                    "message": "publish_at must be a non-empty UTC ISO-8601 string.",
+                }, status=400)
+
+            if publish_at is not None:
+                try:
+                    youtube.validate_publish_at(publish_at)
+                except ValueError as ve:
+                    return self.send_cors_and_json({
+                        "error": "invalid_timestamp",
+                        "message": str(ve),
+                    }, status=400)
+
+            # Check duplicate upload prevention (guards both published and scheduled states)
             force = body.get("force", False)
             existing_upload = clip.get("uploads", {}).get("youtube", {})
-            if existing_upload.get("status") == "published" and not force:
+            existing_status = existing_upload.get("status")
+            if existing_status in ("published", "scheduled") and not force:
+                status_desc = "published to" if existing_status == "published" else "scheduled for"
                 return self.send_cors_and_json({
                     "error": "already_published",
-                    "message": "This clip has already been published to YouTube Shorts.",
+                    "status": existing_status,
+                    "message": f"This clip has already been {status_desc} YouTube Shorts.",
                     "video_id": existing_upload.get("video_id"),
                     "url": existing_upload.get("url"),
                     "uploaded_at": existing_upload.get("uploaded_at"),
+                    "scheduled_at": existing_upload.get("scheduled_at") or existing_upload.get("publish_at"),
                 }, status=409)
 
             # Check authentication
@@ -418,7 +441,7 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
             title = body.get("title", clip.get("title", ""))
             caption = body.get("caption", clip.get("caption", ""))
             hashtags = body.get("hashtags", clip.get("hashtags", []))
-            privacy = body.get("privacy", "private")
+            privacy = "private" if publish_at else body.get("privacy", "public")
 
             # Save any metadata edits first
             storage.save_clip_metadata(
@@ -430,18 +453,23 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
             )
 
             # Mark status in progress
+            upload_in_progress = {
+                "status": "in_progress",
+                "video_id": None,
+                "url": None,
+                "uploaded_at": None,
+                "privacy": privacy,
+                "error": None,
+            }
+            if publish_at:
+                upload_in_progress["scheduled_at"] = publish_at
+                upload_in_progress["publish_at"] = publish_at
+
             storage.update_clip_upload_status(
                 clips_json_path=clip["_json_path"],
                 clip_filename=clip["file"],
                 platform="youtube",
-                upload_status_dict={
-                    "status": "in_progress",
-                    "video_id": None,
-                    "url": None,
-                    "uploaded_at": None,
-                    "privacy": privacy,
-                    "error": None,
-                },
+                upload_status_dict=upload_in_progress,
             )
 
             # Perform resumable upload
@@ -455,17 +483,33 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     description=caption,
                     tags=hashtags,
                     privacy_status=privacy,
+                    publish_at=publish_at,
                 )
 
                 now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                final_status = {
-                    "status": "published",
-                    "video_id": result["video_id"],
-                    "url": result["url"],
-                    "uploaded_at": now_iso,
-                    "privacy": privacy,
-                    "error": None,
-                }
+                if publish_at:
+                    final_status = {
+                        "status": "scheduled",
+                        "video_id": result["video_id"],
+                        "url": result["url"],
+                        "uploaded_at": now_iso,
+                        "scheduled_at": publish_at,
+                        "publish_at": publish_at,
+                        "privacy": "private",
+                        "error": None,
+                    }
+                    success_msg = "Successfully scheduled for YouTube Shorts!"
+                else:
+                    final_status = {
+                        "status": "published",
+                        "video_id": result["video_id"],
+                        "url": result["url"],
+                        "uploaded_at": now_iso,
+                        "privacy": privacy,
+                        "error": None,
+                    }
+                    success_msg = "Successfully published to YouTube Shorts!"
+
                 storage.update_clip_upload_status(
                     clips_json_path=clip["_json_path"],
                     clip_filename=clip["file"],
@@ -475,7 +519,7 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
 
                 return self.send_cors_and_json({
                     "success": True,
-                    "message": "Successfully published to YouTube Shorts!",
+                    "message": success_msg,
                     "upload": final_status,
                 })
 
@@ -488,6 +532,10 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     "privacy": privacy,
                     "error": str(exc),
                 }
+                if publish_at:
+                    failed_status["scheduled_at"] = None
+                    failed_status["publish_at"] = None
+
                 storage.update_clip_upload_status(
                     clips_json_path=clip["_json_path"],
                     clip_filename=clip["file"],

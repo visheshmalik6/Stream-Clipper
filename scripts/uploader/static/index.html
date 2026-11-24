@@ -113,6 +113,16 @@
               <a id="yt-watch-link" class="banner-link" href="#" target="_blank" rel="noopener">Open in YouTube Shorts ↗</a>
             </div>
 
+            <!-- YouTube Scheduled Banner -->
+            <div id="yt-scheduled-banner" class="published-banner yt-scheduled-banner hidden">
+              <div class="banner-top">
+                <span class="banner-icon">🕒</span>
+                <strong>Scheduled on YouTube Shorts</strong>
+              </div>
+              <p class="banner-sub" id="yt-scheduled-time"></p>
+              <a id="yt-scheduled-watch-link" class="banner-link" href="#" target="_blank" rel="noopener">Open in YouTube Studio ↗</a>
+            </div>
+
             <!-- Instagram Published Banner -->
             <div id="ig-published-banner" class="published-banner ig-banner hidden">
               <div class="banner-top">
@@ -184,11 +194,21 @@
                   <span class="badge badge-neutral">YouTube Shorts</span>
                 </div>
                 <select id="edit-privacy" class="input-select">
-                  <option value="private" selected>Private (Default - Recommended for review)</option>
+                  <option value="public" selected>Public (Published directly to subscribers and Shorts feed)</option>
+                  <option value="private">Private (Default - Recommended for review)</option>
                   <option value="unlisted">Unlisted (Accessible only to anyone with the link)</option>
-                  <option value="public">Public (Published directly to subscribers and Shorts feed)</option>
                 </select>
-                <small class="helper-text">Defaults to Private so you can review in YouTube Studio before going public.</small>
+                <small class="helper-text">For immediate uploads. Scheduled uploads are automatically private until published.</small>
+              </div>
+
+              <!-- YouTube Scheduling Date/Time Picker -->
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="yt-schedule-time">Schedule Publication Time (YouTube)</label>
+                  <span class="badge badge-neutral">Optional</span>
+                </div>
+                <input type="datetime-local" id="yt-schedule-time" class="input-text">
+                <small class="helper-text">Pick your local time. Converted automatically to UTC ISO-8601 for YouTube native scheduling.</small>
               </div>
 
               <!-- Form Actions -->
@@ -222,8 +242,16 @@
                 <button type="button" id="publish-yt-btn" class="btn btn-platform btn-youtube">
                   <span class="platform-icon"><svg class="ico fill" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
                   <div class="btn-text">
-                    <span id="publish-yt-title" class="primary">Publish to YouTube</span>
-                    <span id="publish-yt-sub" class="secondary">Shorts (Resumable Upload)</span>
+                    <span id="publish-yt-title" class="primary">Upload Now</span>
+                    <span id="publish-yt-sub" class="secondary">YouTube Shorts (Immediate)</span>
+                  </div>
+                </button>
+
+                <button type="button" id="schedule-yt-btn" class="btn btn-platform btn-youtube-schedule">
+                  <span class="platform-icon"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                  <div class="btn-text">
+                    <span id="schedule-yt-title" class="primary">Schedule YouTube</span>
+                    <span id="schedule-yt-sub" class="secondary">Publish at selected date/time</span>
                   </div>
                 </button>
 

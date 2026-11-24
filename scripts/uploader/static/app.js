@@ -56,6 +56,13 @@ const progressBarFill = document.getElementById("progress-bar-fill");
 const publishYtBtn = document.getElementById("publish-yt-btn");
 const publishYtTitle = document.getElementById("publish-yt-title");
 const publishYtSub = document.getElementById("publish-yt-sub");
+const scheduleYtBtn = document.getElementById("schedule-yt-btn");
+const scheduleYtTitle = document.getElementById("schedule-yt-title");
+const scheduleYtSub = document.getElementById("schedule-yt-sub");
+const ytScheduleTime = document.getElementById("yt-schedule-time");
+const ytScheduledBanner = document.getElementById("yt-scheduled-banner");
+const ytScheduledTime = document.getElementById("yt-scheduled-time");
+const ytScheduledWatchLink = document.getElementById("yt-scheduled-watch-link");
 const publishIgBtn = document.getElementById("publish-ig-btn");
 const publishIgTitle = document.getElementById("publish-ig-title");
 const publishIgSub = document.getElementById("publish-ig-sub");
@@ -246,6 +253,7 @@ function setupEventListeners() {
 
   // Publishing actions
   publishYtBtn.addEventListener("click", handlePublishYouTube);
+  scheduleYtBtn.addEventListener("click", handleScheduleYouTube);
   publishIgBtn.addEventListener("click", handlePublishInstagram);
   publishBothBtn.addEventListener("click", () => triggerPublishPlaceholder("both"));
 
@@ -256,6 +264,8 @@ function setupEventListeners() {
     duplicateModal.classList.add("hidden");
     if (duplicateTargetPlatform === "instagram") {
       executeInstagramUpload(true);
+    } else if (duplicateTargetPlatform === "youtube_schedule") {
+      executeYouTubeSchedule(true);
     } else {
       executeYouTubeUpload(true);
     }
@@ -565,7 +575,30 @@ function selectClip(clip, stream) {
   // Privacy selection
   const ytUpload = (clip.uploads && clip.uploads.youtube) || {};
   const igUpload = (clip.uploads && clip.uploads.instagram) || {};
-  editPrivacy.value = ytUpload.privacy || "private";
+  editPrivacy.value = ytUpload.privacy || "public";
+
+  // Pre-populate scheduled time if available
+  const schedUtc = ytUpload.scheduled_at || ytUpload.publish_at;
+  if (schedUtc) {
+    const d = new Date(schedUtc);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      ytScheduleTime.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    } else {
+      ytScheduleTime.value = "";
+    }
+  } else {
+    ytScheduleTime.value = "";
+  }
+
+  // Prevent picking past dates in browser picker
+  const now = new Date();
+  const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  ytScheduleTime.min = nowStr;
 
   // Stats
   statScore.textContent = `Score: ${clip.score}`;
@@ -620,26 +653,49 @@ function updateYouTubeBannerAndButtons(ytUpload) {
   const status = ytUpload.status || "not_uploaded";
 
   if (status === "published") {
+    ytScheduledBanner.classList.add("hidden");
     ytPublishedBanner.classList.remove("hidden");
     ytPublishedTime.textContent = ytUpload.uploaded_at
-      ? `Uploaded on ${new Date(ytUpload.uploaded_at).toLocaleString()} (${ytUpload.privacy || "private"})`
+      ? `Uploaded on ${new Date(ytUpload.uploaded_at).toLocaleString()} (${ytUpload.privacy || "public"})`
       : "";
     ytWatchLink.href = ytUpload.url || "#";
     ytWatchLink.textContent = `Open YouTube Shorts (${ytUpload.video_id || ""}) ↗`;
 
-    publishYtTitle.textContent = "Re-publish to YouTube";
+    publishYtTitle.textContent = "Re-upload Now";
     publishYtSub.textContent = "Already published (creates new Short)";
     publishYtBtn.classList.add("published-state");
+    scheduleYtBtn.classList.remove("scheduled-state");
+  } else if (status === "scheduled") {
+    ytPublishedBanner.classList.add("hidden");
+    ytScheduledBanner.classList.remove("hidden");
+    const schedTime = ytUpload.scheduled_at || ytUpload.publish_at;
+    const schedLocal = schedTime ? new Date(schedTime).toLocaleString() : "scheduled time";
+    ytScheduledTime.textContent = `Scheduled to publish on ${schedLocal} (UTC: ${schedTime || "pending"})`;
+    ytScheduledWatchLink.href = ytUpload.url || "#";
+    ytScheduledWatchLink.textContent = `Open YouTube Shorts (${ytUpload.video_id || ""}) ↗`;
+
+    scheduleYtTitle.textContent = "Re-schedule YouTube";
+    scheduleYtSub.textContent = `Scheduled for ${schedLocal}`;
+    scheduleYtBtn.classList.add("scheduled-state");
+    publishYtTitle.textContent = "Upload Now";
+    publishYtSub.textContent = "YouTube Shorts (Immediate)";
+    publishYtBtn.classList.remove("published-state");
   } else if (status === "failed") {
     ytPublishedBanner.classList.add("hidden");
+    ytScheduledBanner.classList.add("hidden");
     publishYtTitle.textContent = "Retry YouTube Upload";
     publishYtSub.textContent = ytUpload.error ? `Failed: ${ytUpload.error.slice(0, 30)}...` : "Click to retry";
     publishYtBtn.classList.remove("published-state");
+    scheduleYtBtn.classList.remove("scheduled-state");
   } else {
     ytPublishedBanner.classList.add("hidden");
-    publishYtTitle.textContent = "Publish to YouTube";
-    publishYtSub.textContent = "Shorts (Resumable Upload)";
+    ytScheduledBanner.classList.add("hidden");
+    publishYtTitle.textContent = "Upload Now";
+    publishYtSub.textContent = "YouTube Shorts (Immediate)";
     publishYtBtn.classList.remove("published-state");
+    scheduleYtTitle.textContent = "Schedule YouTube";
+    scheduleYtSub.textContent = "Publish at selected date/time";
+    scheduleYtBtn.classList.remove("scheduled-state");
   }
 }
 
@@ -745,24 +801,80 @@ async function handlePublishYouTube() {
 
   // Check duplicate prevention
   const ytUpload = (selectedClip.uploads && selectedClip.uploads.youtube) || {};
-  if (ytUpload.status === "published") {
+  if (ytUpload.status === "published" || ytUpload.status === "scheduled") {
     duplicateTargetPlatform = "youtube";
     if (dupPlatformName) dupPlatformName.textContent = "YouTube Shorts";
-    dupUploadedTime.textContent = ytUpload.uploaded_at ? new Date(ytUpload.uploaded_at).toLocaleString() : "previously";
+    const existingTime = ytUpload.uploaded_at || ytUpload.scheduled_at;
+    dupUploadedTime.textContent = existingTime ? new Date(existingTime).toLocaleString() : "previously";
     dupVideoLink.href = ytUpload.url || "#";
     duplicateModal.classList.remove("hidden");
     return;
   }
 
-  executeYouTubeUpload(false);
+  executeYouTubeUpload(false, null);
 }
 
-async function executeYouTubeUpload(force = false) {
+async function handleScheduleYouTube() {
+  if (!selectedClip) return;
+
+  if (!ytStatus.connected) {
+    handleConnectYouTubeClick();
+    return;
+  }
+
+  const val = ytScheduleTime.value;
+  if (!val) {
+    showModal(
+      "Schedule Time Required",
+      "<p>Please select a date and time in the <strong>Schedule Publication Time</strong> field before scheduling.</p>"
+    );
+    return;
+  }
+
+  const localDate = new Date(val);
+  if (isNaN(localDate.getTime())) {
+    showModal("Invalid Date", "<p>Please select a valid date and time.</p>");
+    return;
+  }
+
+  if (localDate.getTime() <= Date.now()) {
+    showModal("Past Time Not Allowed", "<p>Scheduled time must be in the future. Please select an upcoming date and time.</p>");
+    return;
+  }
+
+  // Interpret local time and convert to UTC ISO-8601
+  const utcIso = localDate.toISOString();
+
+  // Check duplicate prevention
+  const ytUpload = (selectedClip.uploads && selectedClip.uploads.youtube) || {};
+  if (ytUpload.status === "scheduled" || ytUpload.status === "published") {
+    duplicateTargetPlatform = "youtube_schedule";
+    if (dupPlatformName) dupPlatformName.textContent = "YouTube Shorts (Schedule)";
+    const existingTime = ytUpload.scheduled_at || ytUpload.uploaded_at;
+    dupUploadedTime.textContent = existingTime ? new Date(existingTime).toLocaleString() : "previously";
+    dupVideoLink.href = ytUpload.url || "#";
+    duplicateModal.classList.remove("hidden");
+    return;
+  }
+
+  executeYouTubeUpload(false, utcIso);
+}
+
+function executeYouTubeSchedule(force = false) {
+  const val = ytScheduleTime.value;
+  if (!val) return;
+  const localDate = new Date(val);
+  if (isNaN(localDate.getTime()) || localDate.getTime() <= Date.now()) return;
+  executeYouTubeUpload(force, localDate.toISOString());
+}
+
+async function executeYouTubeUpload(force = false, publishAt = null) {
   if (!selectedClip) return;
 
   publishYtBtn.disabled = true;
+  if (scheduleYtBtn) scheduleYtBtn.disabled = true;
   uploadProgressContainer.classList.remove("hidden");
-  progressStatusText.textContent = "Initiating resumable upload session...";
+  progressStatusText.textContent = publishAt ? "Initiating scheduled upload session..." : "Initiating resumable upload session...";
   progressBarFill.style.width = "20%";
   progressBarFill.style.background = "#4f8cff";
 
@@ -774,10 +886,15 @@ async function executeYouTubeUpload(force = false) {
     privacy: editPrivacy.value,
     force: force,
   };
+  if (publishAt) {
+    payload.publish_at = publishAt;
+  }
 
   try {
     progressBarFill.style.width = "40%";
-    progressStatusText.textContent = "Streaming vertical MP4 to YouTube...";
+    progressStatusText.textContent = publishAt
+      ? `Streaming vertical MP4 to YouTube (Scheduled for ${new Date(publishAt).toLocaleString()})...`
+      : "Streaming vertical MP4 to YouTube...";
 
     const res = await fetch("/api/publish/youtube", {
       method: "POST",
@@ -790,9 +907,10 @@ async function executeYouTubeUpload(force = false) {
     if (res.status === 409) {
       // Duplicate conflict returned from backend
       uploadProgressContainer.classList.add("hidden");
-      duplicateTargetPlatform = "youtube";
-      if (dupPlatformName) dupPlatformName.textContent = "YouTube Shorts";
-      dupUploadedTime.textContent = data.uploaded_at ? new Date(data.uploaded_at).toLocaleString() : "previously";
+      duplicateTargetPlatform = publishAt ? "youtube_schedule" : "youtube";
+      if (dupPlatformName) dupPlatformName.textContent = publishAt ? "YouTube Shorts (Schedule)" : "YouTube Shorts";
+      const existingTime = data.scheduled_at || data.uploaded_at;
+      dupUploadedTime.textContent = existingTime ? new Date(existingTime).toLocaleString() : "previously";
       dupVideoLink.href = data.url || "#";
       duplicateModal.classList.remove("hidden");
       return;
@@ -803,7 +921,7 @@ async function executeYouTubeUpload(force = false) {
     }
 
     progressBarFill.style.width = "100%";
-    progressStatusText.textContent = "Published successfully!";
+    progressStatusText.textContent = publishAt ? "Scheduled successfully!" : "Published successfully!";
 
     // Update in-memory models
     if (!selectedClip.uploads) selectedClip.uploads = {};
@@ -812,21 +930,37 @@ async function executeYouTubeUpload(force = false) {
     updateUploadBadges(selectedClip.uploads);
     updateYouTubeBannerAndButtons(data.upload);
 
-    showToast("🎉 Published to YouTube Shorts successfully!");
-    showModal(
-      "Published to YouTube Shorts!",
-      `<p>Your vertical clip has been uploaded to YouTube Data API v3!</p>
-       <br>
-       <p><strong>Video ID:</strong> ${escapeHtml(data.upload.video_id)}</p>
-       <p><strong>Visibility:</strong> ${escapeHtml(data.upload.privacy)}</p>
-       <br>
-       <p><a href="${escapeHtml(data.upload.url)}" target="_blank" rel="noopener" style="color:#4f8cff; font-weight:600;">Open Short in YouTube ↗</a></p>`
-    );
+    if (publishAt) {
+      showToast("🕒 Scheduled on YouTube Shorts successfully!");
+      showModal(
+        "Scheduled on YouTube Shorts!",
+        `<p>Your vertical clip has been uploaded to YouTube and scheduled for release!</p>
+         <br>
+         <p><strong>Video ID:</strong> ${escapeHtml(data.upload.video_id)}</p>
+         <p><strong>Scheduled Release:</strong> ${escapeHtml(new Date(publishAt).toLocaleString())} (UTC: ${escapeHtml(publishAt)})</p>
+         <p><strong>Initial Visibility:</strong> Private (will become Public at scheduled time)</p>
+         <br>
+         <p><a href="${escapeHtml(data.upload.url)}" target="_blank" rel="noopener" style="color:#4f8cff; font-weight:600;">Open Short in YouTube ↗</a></p>
+         <br>
+         <p style="font-size:12px; color:#9ca3af;">Upload is complete. YouTube will publish this video automatically even if your computer is turned off.</p>`
+      );
+    } else {
+      showToast("🎉 Published to YouTube Shorts successfully!");
+      showModal(
+        "Published to YouTube Shorts!",
+        `<p>Your vertical clip has been uploaded to YouTube Data API v3!</p>
+         <br>
+         <p><strong>Video ID:</strong> ${escapeHtml(data.upload.video_id)}</p>
+         <p><strong>Visibility:</strong> ${escapeHtml(data.upload.privacy)}</p>
+         <br>
+         <p><a href="${escapeHtml(data.upload.url)}" target="_blank" rel="noopener" style="color:#4f8cff; font-weight:600;">Open Short in YouTube ↗</a></p>`
+      );
+    }
   } catch (err) {
     progressStatusText.textContent = `Upload failed: ${err.message}`;
     progressBarFill.style.background = "#e5534b";
     showModal("YouTube Upload Error", `Failed to upload: ${escapeHtml(err.message)}<br><br><small>You can check the error and retry anytime.</small>`);
-    
+
     // Update failed status
     if (selectedClip.uploads && selectedClip.uploads.youtube) {
       selectedClip.uploads.youtube.status = "failed";
@@ -836,6 +970,7 @@ async function executeYouTubeUpload(force = false) {
     }
   } finally {
     publishYtBtn.disabled = false;
+    if (scheduleYtBtn) scheduleYtBtn.disabled = false;
     setTimeout(() => {
       uploadProgressContainer.classList.add("hidden");
       progressBarFill.style.width = "10%";
@@ -970,6 +1105,7 @@ function updateUploadBadges(uploads) {
 
 function formatStatus(status) {
   if (status === "published") return "Published ✓";
+  if (status === "scheduled") return "Scheduled 🕒";
   if (status === "in_progress") return "Uploading...";
   if (status === "failed") return "Failed ✕";
   return "Ready to publish";
